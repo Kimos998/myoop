@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Typologies - Bleu & Noir</title>
+    <style>
+        :root {
+            --color-black: #0b0f19;
+            --color-blue: #1d4ed8;
+            --color-blue-hover: #1e40af;
+            --bg-light: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-light);
+            color: #333;
+        }
+
+        /* Barre de navigation Bleu & Noir tout en haut */
+        nav {
+            background-color: var(--color-black);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--color-blue);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        nav input {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid #374151;
+            background-color: #1f2937;
+            color: white;
+            font-size: 14px;
+            width: 250px;
+            outline: none;
+        }
+
+        nav input:focus {
+            border-color: var(--color-blue);
+        }
+
+        /* Disposition principale en 2 colonnes */
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 65px);
+            overflow: hidden;
+        }
+
+        /* Colonne de gauche : Liste des typologies */
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .typology-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            font-weight: bold;
+            color: #1f2937;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .typology-item:hover {
+            background-color: #eff6ff;
+            color: var(--color-blue);
+        }
+
+        .typology-item.active {
+            background-color: var(--color-blue);
+            color: white;
+            border-left: 6px solid var(--color-black);
+        }
+
+        /* Colonne de droite : Affichage détaillé complet */
+        .content-panel {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .detail-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--color-blue);
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .message-section {
+            margin-bottom: 20px;
+        }
+
+        .message-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .message-box {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-line;
+            margin-bottom: 8px;
+            color: #111827;
+            line-height: 1.5;
+        }
+
+        /* Boutons de copie */
+        .btn-copy {
+            background-color: var(--color-black);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-copy:hover {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action:hover {
+            background-color: var(--color-blue-hover);
+        }
+
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--color-black);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            border-left: 4px solid var(--color-blue);
+            display: none;
+            z-index: 1000;
+        }
+
+        .no-selection {
+            text-align: center;
+            color: #9ca3af;
+            margin-top: 100px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>Gestionnaire de Typologies</h1>
+    <input type="text" id="searchInput" placeholder="Rechercher une typologie...">
+</nav>
+
+<div class="main-layout">
+    <div class="sidebar" id="sidebarList"></div>
+
+    <div class="content-panel" id="contentPanel">
+        <div class="no-selection">Sélectionnez une typologie dans la liste de gauche pour afficher les messages complets.</div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Copié dans le presse-papiers !</div>
+
+<script>
+    const data = [
+        {
+            typology: "Pas de solution",
+            client: "Aucun",
+            vendeur: "Bonjour,\n\nVous n’avez toujours pas transmis de lien de suivi valide ou confirmant l’expédition du colis. Nous vous rappelons que vous avez 7 jours, à compter du 23/02/2026, pour nous faire parvenir une preuve de livraison. A défaut, nous nous réservons le droit de procéder au remboursement de la commande, conformément à nos CGMAD.\n\nPour rappel, une preuve de livraison valable doit :\n- Provenir du transporteur utilisé.\n- Mentionner le nom du client et son adresse de livraison complète.\n- Indiquer la date de réception du colis par le client.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2 - Mise en attente 2 jours MEA pour suivi dossier et relance vendeur\nMail : 1345"
+        },
+        {
+            typology: "Livre après",
+            client: "Aucun",
+            vendeur: "Bonjour,\n\nLe client nous signale qu'il n'a pas reçu sa commande. Le suivi de livraison nous indique pourtant que le colis est livré. Nous prenons en charge cette demande.\n\nCordialement,\nL'équipe Cdiscount",
+            actions: "2517 - Modération discussion MP (Requalification en Escalade)\nMail : 1151\n19 - Clôture du dossier"
+        },
+        {
+            typology: "RBT après",
+            client: "Aucun",
+            vendeur: "Bonjour,\n\nSuite au passage en réclamation, vous avez proposé au client de le rembourser. Nous vous remercions pour la solution apportée au client et nous l’informons de son remboursement.\n\nCordialement,\nAbdelkrim\nL’équipe Cdiscount",
+            actions: "385 - Information sur le remboursement déjà effectué\nMail : 1397\n19 - Clôture du dossier"
+        },
+        {
+            typology: "En cours de livraison (patienter)",
+            client: "Bonjour,\n\nVous nous avez contacté concernant la livraison de votre colis. Ce dernier s’avère être toujours en cours de livraison. Acceptez vous de patienter encore quelques jours pour la livraison de ce colis ?\n\nSi oui, merci de nous indiquer jusqu’à quand vous êtes prêt à attendre. Merci d’avance de répondre directement dans cette discussion avec le vendeur pour plus de réactivité dans le traitement.\n\nMerci de votre retour,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe colis est en cours de livraison sur une promesse de livraison dépassée. Nous avons tenté de contacté le client pour confirmer s’il est prêt à attendre la livraison. Nous invitons le client à indiquer dans cette discussion s’il souhaite patienter.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1924 +389 En attente confirmation client – Colis en cours de livraison"
+        },
+        {
+            typology: "Produit DEMT",
+            client: "Bonjour,\n\nNous constatons que le vendeur vous a adressé le lien de téléchargement ou code permettant d’accéder à votre produit . Vous pouvez accéder à ces informations directement depuis votre espace client, rubrique \" mes messages et demandes”. Si vous avez le moindre souci avec la livraison, revenez directement vers votre vendeur dans cette discussion.\n\nMerci de votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Aucun",
+            actions: "2517 - Modération discussion MP (Requalification en discussion)\n19 - Clôture"
+        },
+        {
+            typology: "En cours de livraison",
+            client: "Bonjour,\n\nJe suis désolé pour le retard de livraison, je relance le vendeur à ce sujet. Ce dernier a 5 jours maximum pour apporter la preuve de livraison, passé ce délai vous pourrez être remboursé si vous ne souhaitez pas patienter davantage. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe client nous contacte car il n’a pas reçu son colis alors que la promesse de livraison est dépassée. Pourriez vous svp nous confirmer la livraison de ce colis en nous transmettant une preuve de livraison à l’adresse prévue lors de la validation de la commande.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2481 +1157"
+        },
+        {
+            typology: "Non expédiée Pas de tracking",
+            client: "Bonjour,\n\nLes informations transmises ne permettent pas de vérifier la bonne expédition de votre colis, je relance le vendeur pour avoir ces éléments. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nNous n’avons pas reçu de lien de suivi ou tracking qui confirme une expédition de la commande. La commande est indiquée expédiée depuis plus de 2 jours, nous vous demandons donc de bien vouloir nous transmette un lien de suivi conforme qui confirme l’expédition de la commande.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2480+1157"
+        },
+        {
+            typology: "Expédition non confirmée",
+            client: "Bonjour,\n\nLes informations transmises ne permettent pas de vérifier la bonne expédition de votre colis, je relance le vendeur pour avoir ces éléments. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nNous avons bien reçu un lien de suivi ou tracking mais il n’indique pas l’expédition de la commande (prise en charge par le transporteur non confirmée). La commande est indiquée expédiée depuis plus de 2 jours, nous vous demandons donc de bien vouloir nous transmette un lien de suivi de la livraison conforme qui confirme l’expédition de la commande.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount Marketplace",
+            actions: "2480+1157"
+        },
+        {
+            typology: "RBT relance vendeur",
+            client: "Bonjour,\n\nLe remboursement de votre commande a bien été validé par le vendeur. Je le relance pour qu’il procède à ce remboursement le plus rapidement possible. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nVous indiquez confirmer le remboursement du client. Celui nous contacte car il ne l'a pas encore reçu. Nous vous demandons donc de procéder au remboursement du client le plus rapidement possible svp.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2486 +1157"
+        },
+        {
+            typology: "Livré sans preuve",
+            client: "Bonjour,\n\nLes informations transmises ne permettent pas de vérifier où a été livré le colis, je relance le vendeur pour avoir ces éléments. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe client nous indique ne pas avoir reçu son colis, et le suivi de colis que vous avez fourni indique qu’il est bien livré. Néanmoins nous ne pouvons vérifier à quelle adresse la livraison a été effectuée. Pouvez-vous svp nous transmettre les informations et documents permettant de vérifier où le colis a été livré.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2483 - Réclamation sur colis livré sans preuve de liv\n1157 - Passage en réclamation"
+        },
+        {
+            typology: "Livré avec preuve",
+            client: "Aucun",
+            vendeur: "Aucun",
+            actions: "2517 - Modération de la discussion si avant la réclamation\n1655 - Transfert - Temporisation contestation"
+        },
+        {
+            typology: "Commande remboursée",
+            client: "Aucun",
+            vendeur: "Bonjour,\n\nSuite aux échanges avec le client, vous avez remboursé le produit. Nous vous remercions pour la solution apportée et nous nous chargeons d’informer le client.\n\nCordialement,\nAbdelkrim\nL’équipe Cdiscount",
+            actions: "2517 - Modération discussion MP (discussion)\n2421 - Modération escalade - Retour vendeur OK\n385 - Information sur le remboursement déjà effectué\nMail : 1397\n19 - Clôture du dossier"
+        },
+        {
+            typology: "RBT ou Rexp pas de réponse",
+            client: "Bonjour,\n\nLe vendeur vous propose de vous rembourser le produit ou de vous en renvoyer un nouveau. Je vous invite à lui indiquer votre choix sous 2 jours dans cette discussion. Sans retour de votre part, le vendeur procédera au remboursement de la commande. Je repasse sur votre dossier pour suivre l'avancement dans les prochains jours.\n\nMerci de votre compréhension,\nAbdelkrim\nL’équipe Cdiscount",
+            vendeur: "Bonjour,\n\nNous accusons réception de votre réponse. Nous relançons le client afin qu'il vous apporte les informations demandées. Dès réception de ces dernières, nous vous demandons de lui confirmer le traitement sous 48 heures. A défaut de réponse, nous vous confirmerons le remboursement du produit.\n\nCordialement,\nAbdelkrim\nL’équipe Cdiscount",
+            actions: "390 - Mise en attente - 4 jours\nMail : 1919"
+        },
+        {
+            typology: "Client choisit réexpédition",
+            client: "Bonjour,\n\nNous relançons le vendeur concernant la nouvelle livraison de votre colis. Le vendeur doit nous apporter la preuve de la livraison sous 7 jours maximum.\n\nMerci de votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe client a choisi de se faire réexpédier le produit. Pouvez-vous svp nous transmettre les informations permettant le suivi de livraison?\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1157 - Passage en réclamation\n2489 - Réclamation sur choix client réexpédition"
+        },
+        {
+            typology: "Client choisit remboursement",
+            client: "Bonjour,\n\nJ’ai bien reçu votre confirmation de remboursement. Je relance le vendeur pour qu’il traite votre demande le plus rapidement possible. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nSuite à votre proposition, le client a confirmé qu’il souhaitait le remboursement du produit. Nous vous demandons donc de procéder au remboursement le plus rapidement possible.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1157 - Passage en réclamation\n2488 - Réclamation sur choix client remboursement"
+        },
+        {
+            typology: "Colis absent du point relais",
+            client: "Bonjour,\n\nNous relançons le vendeur concernant la livraison de votre colis. Le vendeur doit nous apporter la preuve de la livraison sous 7 jours maximum.\n\nMerci de votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe client nous indique que le colis n’est pas présent au point de relais. Pouvez-vous svp vérifier avec votre transporteur et nous indiquer où en est la livraison de ce colis.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "2491 - Réclamation sur colis absent du point relais\n1157 - Passage en réclamation"
+        },
+        {
+            typology: "Réexpédition pas de lien",
+            client: "Bonjour,\n\nLe vendeur vous a renvoyé un produit, je le relance pour avoir le suivi de colis de cette réexpédition. Je repasse sur votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL’équipe Cdiscount",
+            vendeur: "Bonjour,\n\nSuite aux récents échanges, le client a confirmé qu’il souhaitait une réexpédition. Nous n’avons cependant pas reçu de lien de suivi valide permettant de suivre la livraison de cette nouvelle expédition. Pouvez-vous svp nous le transmettre le plus rapidement possible ?\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1157 - Passage en réclamation\n2487 - Réexpédition colis sans lien suivi valide"
+        },
+        {
+            typology: "Colis en retour",
+            client: "Bonjour,\n\nLe suivi du colis indique que ce dernier a fait retour chez le vendeur. Je le relance pour qu’il valide le remboursement le plus rapidement possible. Je reprends votre dossier dans 2 jours pour suivre l'avancement et vous tenir informé dans cette discussion.\n\nMerci de votre compréhension,\nAbdelkrim\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe suivi du colis que vous avez transmis indique que le colis a été mis en retour. Nous vous demandons de procéder au remboursement du client.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1157 - Passage en réclamation\n2485 - Réclamation sur colis en retour pour rbt client"
+        },
+        {
+            typology: "Vendeur ne répond pas (RBT)",
+            client: "Bonjour,\n\nVous ne souhaitez pas patienter plus longtemps pour la livraison de votre produit. Nous prenons bien en compte votre choix ! Nous procédons ce jour au remboursement de cette commande.\n\nSi le produit vous parvient, nous vous demandons de ne pas accepter la livraison.\n\nMerci pour votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nA ce jour, vous n'avez pas répondu au client et ainsi n’avez pas respecté les CGMAD.\n\nLe client ne souhaitant pas attendre plus longtemps, nous procédons ce jour au remboursement de la commande à vos frais.\n\nBonne journée",
+            actions: "Traitement direct par remboursement d'office"
+        },
+        {
+            typology: "Réexpédition en cours",
+            client: "Bonjour,\n\nLe vendeur a effectué l'expédition annoncée dans le fil de discussion. Vous pouvez suivre la livraison avec le numéro de suivi indiqué dans le message du vendeur.\n\nMerci de votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nVous avez fourni un numéro de suivi fonctionnel. Nous informons le client qu'il recevra son colis rapidement.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "Mail : 1399\n19 - Clôture dossier"
+        },
+        {
+            typology: "Pas de solution après 7j",
+            client: "Aucun",
+            vendeur: "Bonjour,\n\nAucune solution satisfaisante n’a été proposée au client dans les 7 jours qui ont suivi le passage en réclamation.\n\nNous procédons au remboursement total de la commande concernée à vos frais, conformément aux Conditions Générales de Mise à Disposition de la Marketplace.\n\nCordialement,\nL'équipe Cdiscount",
+            actions: "1584 - Motif remboursement post-réclamation\nCommentaire : colis en cours de livraison avec réclamation + 7 jours\nMail : 1525"
+        },
+        {
+            typology: "Si client patienter",
+            client: "Bonjour,\n\nVous nous avez contacté concernant la livraison de votre colis. Ce dernier s’avère être toujours en cours de livraison. Acceptez vous de patienter encore quelques jours pour la livraison de ce colis ?\n\nSi oui, merci de nous indiquer jusqu’à quand vous êtes prêt à attendre. Merci d’avance de répondre directement dans cette discussion avec le vendeur pour plus de réactivité dans le traitement.\n\nMerci de votre retour,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nLe colis est en cours de livraison sur une promesse de livraison dépassée. Nous avons tenté de contacté le client pour confirmer s’il est prêt à attendre la livraison. Nous invitons le client à indiquer dans cette discussion s’il souhaite patienter.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "1924 - Demande de précision au client\n389 - Mise en attente 3 jours"
+        },
+        {
+            typology: "Livraison point relais",
+            client: "Aucun",
+            vendeur: "Aucun",
+            actions: "2517 - Modération discussion MP (Requalification en discussion)\nMail : 1455\n19 - Clôture du dossier"
+        },
+        {
+            typology: "Expédition confirmée avec lien",
+            client: "Bonjour,\n\nLe vendeur a effectué l'expédition annoncée dans le fil de discussion. Vous pouvez suivre la livraison avec le numéro de suivi indiqué dans le message du vendeur.\n\nMerci de votre compréhension,\nL'équipe Cdiscount",
+            vendeur: "Bonjour,\n\nVous avez fourni un numéro de suivi fonctionnel. Nous informons le client qu'il recevra son colis rapidement.\n\nCordialement,\nAbdelkrim\nL'équipe Cdiscount",
+            actions: "Mail : 1399\n19 - Clôture dossier"
+        }
+    ];
+
+    function renderSidebar(filter = "") {
+        const sidebar = document.getElementById("sidebarList");
+        sidebar.innerHTML = "";
+
+        const filtered = data.filter(item => item.typology.toLowerCase().includes(filter));
+
+        filtered.forEach((item) => {
+            const div = document.createElement("div");
+            div.className = "typology-item";
+            div.innerText = item.typology;
+            div.onclick = () => {
+                document.querySelectorAll('.typology-item').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+                displayDetails(item);
+            };
+            sidebar.appendChild(div);
+        });
+    }
+
+    function displayDetails(item) {
+        const panel = document.getElementById("contentPanel");
+        
+        let clientSection = item.client !== "Aucun" ? `
+            <div class="message-section">
+                <span class="message-label">Message Client Complet</span>
+                <div class="message-box">${item.client}</div>
+                <button class="btn-copy" onclick="copyText(\`${escapeHtml(item.client)}\`)">Copier Message Client</button>
+            </div>
+        ` : `
+            <div class="message-section">
+                <span class="message-label">Message Client Complet</span>
+                <div class="message-box" style="color: #9ca3af; font-style: italic;">Aucun message client pour cette typologie</div>
+            </div>
+        `;
+
+        let vendeurSection = item.vendeur !== "Aucun" ? `
+            <div class="message-section">
+                <span class="message-label">Message Vendeur Complet</span>
+                <div class="message-box">${item.vendeur}</div>
+                <button class="btn-copy" onclick="copyText(\`${escapeHtml(item.vendeur)}\`)">Copier Message Vendeur</button>
+            </div>
+        ` : `
+            <div class="message-section">
+                <span class="message-label">Message Vendeur Complet</span>
+                <div class="message-box" style="color: #9ca3af; font-style: italic;">Aucun message vendeur pour cette typologie</div>
+            </div>
+        `;
+
+        panel.innerHTML = `
+            <div class="detail-card">
+                <h2 class="detail-title">${item.typology}</h2>
+                ${clientSection}
+                ${vendeurSection}
+                <div class="message-section">
+                    <span class="message-label">Actions & Codes</span>
+                    <div class="message-box">${item.actions}</div>
+                    <button class="btn-copy btn-action" onclick="copyText(\`${escapeHtml(item.actions)}\`)">Copier Actions</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/`/g, "\\`").replace(/"/g, '&quot;');
+    }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast();
+        });
+    }
+
+    function showToast() {
+        const toast = document.getElementById("toast");
+        toast.style.display = "block";
+        setTimeout(() => {
+            toast.style.display = "none";
+        }, 1500);
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function(e) {
+        renderSidebar(e.target.value.toLowerCase().trim());
+    });
+
+    renderSidebar();
+</script>
+
+</body>
+</html>
