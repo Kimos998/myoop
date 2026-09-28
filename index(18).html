@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Typologies - Cdiscount Retours</title>
+    <style>
+        :root {
+            --color-black: #0b0f19;
+            --color-blue: #1d4ed8;
+            --color-blue-hover: #1e40af;
+            --bg-light: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-light);
+            color: #333;
+        }
+
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .typology-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+            transition: background 0.2s, color 0.2s;
+            line-height: 1.35;
+        }
+
+        .typology-item:hover {
+            background-color: #eff6ff;
+            color: var(--color-blue);
+        }
+
+        .typology-item.active {
+            background-color: var(--color-blue);
+            color: white;
+            border-left: 6px solid var(--color-black);
+        }
+
+        .typology-item .code {
+            display: block;
+            font-size: 11px;
+            font-weight: normal;
+            opacity: 0.75;
+            margin-top: 3px;
+        }
+
+        .content-panel {
+            flex: 1;
+            padding: 28px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .detail-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--color-blue);
+            margin-top: 0;
+            margin-bottom: 18px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .message-section {
+            margin-bottom: 22px;
+        }
+
+        .message-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .message-box {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-line;
+            margin-bottom: 10px;
+            color: #111827;
+            line-height: 1.55;
+        }
+
+        .message-box.empty {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .btn-copy {
+            background-color: var(--color-black);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+
+        .btn-copy:hover {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action:hover {
+            background-color: var(--color-blue-hover);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--color-black);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            border-left: 4px solid var(--color-blue);
+            display: none;
+            z-index: 1000;
+        }
+
+        .no-selection {
+            text-align: center;
+            color: #9ca3af;
+            margin-top: 100px;
+            font-size: 18px;
+        }
+
+        .meta-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .meta-badge {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .meta-badge.note {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-layout">
+    <div class="sidebar" id="sidebarList"></div>
+
+    <div class="content-panel" id="contentPanel">
+        <div class="no-selection">Sélectionnez une typologie dans la liste de gauche pour afficher les messages complets.</div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Copié dans le presse-papiers !</div>
+
+<script>
+    const data = [
+        {
+            typology: "Procédure de retour conforme",
+            code: "2517, 1731",
+            vendeur: "Bonjour,\nMerci pour votre prise en charge de la demande de rétractation de notre client.\nNous informons ce dernier qu'il doit utiliser les informations transmises pour effectuer son retour et obtenir son remboursement.\nLa réclamation n'étant pas justifiée nous la modérons dés à présent, désolé pour la gêne occasionnée.\nCordialement,\nL'équipe Cdiscount",
+            client: "Bonjour,\nNous faisons suite à votre demande concernant le retour de votre commande.\nConformément à la réglementation en vigueur, vous disposez d’un délai de 14 jours calendaires à compter de la réception de votre article pour exercer votre droit de rétractation.\nPour être accepté, le produit doit être retourné dans son emballage d’origine, à l’état neuf et non utilisé.\nPour effectuer votre retour, vous pouvez nous retourner le colis, à vos frais, avec le transporteur de votre choix, à l’adresse suivante :\n********\nNous vous remercions de votre compréhension et vous souhaitons une agréable journée.\nBien cordialement,\nL’équipe Cdiscount\n\n(Message alternatif):\nBonjour,\nSuite à votre demande de retour pour rétractation, le vendeur vous a proposé une solution conforme.\nNous vous invitons donc à renvoyer le produit dès que possible à l'adresse indiquée par le vendeur.\nVous serez remboursé dans un délai maximum de 3 jours suivant la réception et la validation du colis par ses soins. En cas de difficulté avec le retour ou le remboursement, vous pourrez de nouveau solliciter l'intervention de Cdiscount directement depuis votre rubrique \"Mes messages\".\nÀ très bientôt,\nL'équipe Cdiscount",
+            note: "Modération discussion MP (modération en discussion)"
+        },
+        {
+            typology: "Pas de réponse vendeur / En attente procédure de retour",
+            code: "389",
+            vendeur: "Bonjour,\nLe client souhaite retourner son produit. Merci de lui transmettre dans les 2 jours une adresse de retour en France.\nLe client retournera le colis à ses frais. Le client dispose de 14 jours (30 jours du 1er Nov au 31 Déc) après réception du produit pour se manifester.\nLes frais de retour sont à sa charge sauf si l'adresse de retour est hors de France. Dans ce cas vous devez fournir une étiquette de retour prépayée ou pour le retour de produits volumineux nous vous encourageons à aider l'acheteur dans la reprise en fournissant les coordonnées d'un transporteur. La procédure de retour est à communiquer dès votre 1er message. Votre réponse doit respecter les CGMAD et le guide de la relation acheteur - vendeur (disponibles en pied de page de l'espace vendeur). A défaut, le client sera remboursé à votre charge.\nCordialement,\nL'équipe Cdiscount",
+            client: "Bonjour,\nNous vous informons avoir relancé le vendeur afin qu’il vous communique une adresse de retour conforme, vous permettant ainsi de procéder au renvoi de votre produit.\nNous vous rappelons que, dans le cadre d’une rétractation, les frais de retour restent à la charge du client.\nNous vous souhaitons une excellente journée.\nCordialement,\nL'équipe Cdiscount",
+            note: null
+        },
+        {
+            typology: "Acceptation geste commercial - Remboursement partiel",
+            code: null,
+            vendeur: null,
+            client: null,
+            note: "La cliente accepte le geste commercial proposé par le vendeur. Le vendeur a bien déclenché le remboursement partiel de 20 euros.\nJ’ai informé le client que le vendeur a bien déclenché le remboursement partiel de 20 euros, sous forme de recrédit directement sur son compte bancaire. Le remboursement devrait apparaître sur son compte sous un délai de 3 à 5 jours ouvrés."
+        },
+        {
+            typology: "Colis non reçu",
+            code: "2222, 389",
+            vendeur: null,
+            client: null,
+            note: "Le client indique ne pas avoir reçu le produit. Il s'agit donc d'un colis non reçu."
+        },
+        {
+            typology: "Suivi après 3 jours de mise en demeure - Demande lien de suivi au vendeur",
+            code: null,
+            vendeur: "Bonjour,\nPuisque le client a retourné le produit en utilisant l’étiquette de retour que vous lui avez fournie, le retour reste sous votre responsabilité.\nAfin de pouvoir suivre l’acheminement du colis jusqu’à vos entrepôts, pourriez-vous nous transmettre le lien de suivi correspondant à cet envoi ?\nNous vous invitons à nous communiquer ces informations dans un délai de 48 heures.\nMerci par avance pour votre retour.\nCordialement,\nAbdelkrim\nL’équipe Cdiscount",
+            client: null,
+            note: "Attendre la réponse du vendeur."
+        },
+        {
+            typology: "Notification client remboursement partiel",
+            code: null,
+            vendeur: null,
+            client: "Bonjour,\nNous vous contactons concernant votre commande.\nNous vous informons que le vendeur a bien déclenché un remboursement partiel de 35 €, qui sera recrédité directement sur votre compte bancaire.\nLe remboursement devrait apparaître sur votre compte dans un délai de 3 à 5 jours ouvrés.\nCordialement,\nL’équipe Cdiscount",
+            note: null
+        },
+        {
+            typology: "En attente de la preuve de retour",
+            code: null,
+            vendeur: null,
+            client: "Bonjour,\nNous faisons suite à votre demande concernant le retour de votre commande.\nConformément à la réglementation en vigueur, vous disposez d’un délai de 14 jours calendaires à compter de la réception de votre article pour exercer votre droit de rétractation.\nPour être accepté, le produit doit être retourné dans son emballage d’origine, à l’état neuf et non utilisé.\nPour effectuer votre retour, vous pouvez nous retourner le colis, à vos frais, avec le transporteur de votre choix, à l’adresse suivante :\nBoxsir/ZCJB\n31 avenue de la Gare\n80000 Amiens\nFrance\nUne fois le retour effectué, nous vous invitons à nous transmettre la preuve de dépôt ainsi que le numéro de suivi fourni par le transporteur. Ces informations nous permettront de suivre l’acheminement du colis jusqu’à sa réception.\nNous vous remercions de votre compréhension et vous souhaitons une agréable journée.\nBien cordialement,\nL’équipe Cdiscount",
+            note: "En attente de la preuve de retour."
+        },
+        {
+            typology: "Nouvelle demande de retour",
+            code: "2305",
+            vendeur: "Bonjour,\nLe client vous contacte car il souhaite se rétracter.\nNous vous rappelons que vous avez 48h pour lui apporter une solution conforme :\nAdresse de retour en France\nEtiquette de retour\nCoordonnées d’un transporteur et adresse de retour pour les produits Volumineux\nNous gardons le dossier sous surveillance et, conformément aux CGMAD et au Guide de la Relation Acheteur-Vendeur, nous procéderons au remboursement si vous n’apportez de solution conforme dans ce délai.\nMerci de votre aide,",
+            client: null,
+            note: null
+        },
+        {
+            typology: "Confirmation acceptation geste commercial et demande d'exécution",
+            code: null,
+            vendeur: "Bonjour,\nNous revenons vers vous concernant le geste commercial proposé au client et accepté par celui-ci.\nNous vous invitons à procéder au remboursement du montant convenu dans les meilleurs délais et à nous confirmer une fois l’opération effectuée.\nCordialement,\nAbdelkrim\nL’équipe Cdiscount",
+            client: "Bonjour,\nNous vous confirmons avoir bien pris en compte votre acceptation du geste commercial.\nNous venons de relancer immédiatement le vendeur à ce sujet afin qu’il puisse procéder au remboursement du geste commercial dans les meilleurs délais.\nNous vous remercions pour votre compréhension et votre patience.\nCordialement,\nL’équipe Cdiscount",
+            note: null
+        },
+        {
+            typology: "Retour effectué et confirmation réception - Attente suivi pour réexpédition",
+            code: null,
+            vendeur: "Bonjour,\nLe client indique avoir déjà retourné le produit à l’adresse que vous lui avez fournie.\nVous indiquez avoir procédé à une réexpédition dès confirmation de la réception du retour. Or, le colis retour a bien été réceptionné par vos services le 22/09, comme le confirme le suivi du transporteur : https://www.ship24.com/tracking?p=5Y00599802061\nToutefois, à ce stade, les informations communiquées ne permettent pas de confirmer correctement l’acheminement de la réexpédition, notamment en raison de l’absence d’un numéro de suivi valide.\nAfin de pouvoir poursuivre le traitement du dossier, merci de nous transmettre les informations complètes et conformes relatives à la réexpédition en cours, notamment :\nle numéro de suivi valide ;\nle nom du transporteur utilisé ;\ntout justificatif confirmant l’expédition du nouveau colis.\nMerci de regrouper, dans une seule réponse, l’ensemble des informations et justificatifs demandés.\nÀ défaut de réponse complète dans les meilleurs délais, nous pourrons être amenés à procéder au remboursement de la commande.\nCordialement,\nL’équipe Cdiscount",
+            client: null,
+            note: null
+        },
+        {
+            typology: "Demande numéro de suivi retour au client",
+            code: null,
+            vendeur: null,
+            client: "Bonjour,\nVous avez indiqué retourner le produit au vendeur en utilisant La Poste, mais jusqu'à présent vous n'avez pas transmis de numéro de suivi afin de suivre le retour et de confirmer si le vendeur a bien reçu le produit pour valider le remboursement. Merci de bien vouloir contacter le transporteur afin de nous fournir un lien ou un numéro de suivi, ce qui nous permettra de traiter votre demande.\nNous vous remercions de votre bonne collaboration,\nL’équipe Cdiscount",
+            note: null
+        },
+        {
+            typology: "Refus vendeur remboursement total (produit utilisé) - Demande rapport d'expertise",
+            code: null,
+            vendeur: "Bonjour,\nVous avez indiqué que le produit retourné avait déjà été utilisé par le client et que cela justifierait le refus de rembourser la totalité du montant.\nCependant, les photos que vous nous avez transmises ne permettent pas de vérifier ni de démontrer clairement que le produit a effectivement été utilisé.\nAfin de pouvoir examiner la situation de manière objective, merci de bien vouloir nous transmettre un rapport d’expertise détaillé expliquant précisément les éléments permettant de conclure que le produit a déjà été utilisé, ainsi que les éventuelles traces ou constatations techniques relevées.\nDans l’attente de ces éléments, merci de bien vouloir revoir votre position concernant le remboursement.\nCordialement,",
+            client: null,
+            note: null
+        },
+        {
+            typology: "Confirmation parcours de retour au client",
+            code: null,
+            vendeur: null,
+            client: "Bonjour,\nNous vous contactons concernant le retour de votre produit.\nNous vous remercions pour votre confirmation de retour. Après vérification, nous constatons que vous avez bien retourné le produit et que celui-ci est actuellement en cours d’acheminement vers le vendeur.\nDès que le vendeur aura confirmé la réception du retour, votre remboursement sera effectué.\nBien cordialement,\nL’équipe Cdiscount",
+            note: null
+        }
+    ];
+
+    function renderSidebar(filter = "") {
+        const list = document.getElementById("sidebarList");
+        list.innerHTML = "";
+
+        const filtered = data.filter(item =>
+            item.typology.toLowerCase().includes(filter) ||
+            (item.code && item.code.toLowerCase().includes(filter)) ||
+            (item.note && item.note.toLowerCase().includes(filter))
+        );
+
+        filtered.forEach((item, index) => {
+            const div = document.createElement("div");
+            div.className = "typology-item";
+            div.innerHTML = item.typology +
+                (item.code ? `<span class="code">Code: ${item.code}</span>` : "");
+            div.onclick = () => selectTypology(item, div);
+            list.appendChild(div);
+        });
+    }
+
+    function selectTypology(item, el) {
+        document.querySelectorAll(".typology-item").forEach(e => e.classList.remove("active"));
+        el.classList.add("active");
+
+        const panel = document.getElementById("contentPanel");
+
+        let metaHtml = '<div class="meta-row">';
+        if (item.code) {
+            metaHtml += `<span class="meta-badge">Code action: ${item.code}</span>`;
+        }
+        if (item.note) {
+            metaHtml += `<span class="meta-badge note">Note</span>`;
+        }
+        metaHtml += '</div>';
+
+        let clientSection = item.client ? `
+            <div class="message-section">
+                <span class="message-label">Message Client</span>
+                <div class="message-box">${item.client}</div>
+                <button class="btn-copy" onclick="copyText(\`${escapeForCopy(item.client)}\`)">Copier Message Client</button>
+            </div>
+        ` : `
+            <div class="message-section">
+                <span class="message-label">Message Client</span>
+                <div class="message-box empty">Aucun message client pour cette typologie</div>
+            </div>
+        `;
+
+        let vendeurSection = item.vendeur ? `
+            <div class="message-section">
+                <span class="message-label">Message Vendeur</span>
+                <div class="message-box">${item.vendeur}</div>
+                <button class="btn-copy" onclick="copyText(\`${escapeForCopy(item.vendeur)}\`)">Copier Message Vendeur</button>
+            </div>
+        ` : `
+            <div class="message-section">
+                <span class="message-label">Message Vendeur</span>
+                <div class="message-box empty">Aucun message vendeur pour cette typologie</div>
+            </div>
+        `;
+
+        let noteSection = item.note ? `
+            <div class="message-section">
+                <span class="message-label">Note</span>
+                <div class="message-box">${item.note}</div>
+                <button class="btn-copy btn-action" onclick="copyText(\`${escapeForCopy(item.note)}\`)">Copier Note</button>
+            </div>
+        ` : "";
+
+        panel.innerHTML = `
+            <div class="detail-card">
+                <h2 class="detail-title">${item.typology}</h2>
+                ${metaHtml}
+                ${clientSection}
+                ${vendeurSection}
+                ${noteSection}
+            </div>
+        `;
+    }
+
+    function escapeForCopy(text) {
+        return text
+            .replace(/\\/g, "\\\\")
+            .replace(/`/g, "\\`")
+            .replace(/\$/g, "\\$");
+    }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast();
+        }).catch(() => {
+            // fallback
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            showToast();
+        });
+    }
+
+    function showToast() {
+        const toast = document.getElementById("toast");
+        toast.style.display = "block";
+        setTimeout(() => {
+            toast.style.display = "none";
+        }, 1500);
+    }
+
+    renderSidebar();
+</script>
+
+</body>
+</html>
