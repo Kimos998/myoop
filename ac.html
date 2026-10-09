@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Typologies - Accessoire Manquant</title>
+    <style>
+        :root {
+            --color-black: #0b0f19;
+            --color-blue: #1d4ed8;
+            --color-blue-hover: #1e40af;
+            --bg-light: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-light);
+            color: #333;
+        }
+
+        nav {
+            background-color: var(--color-black);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--color-blue);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        nav input {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid #374151;
+            background-color: #1f2937;
+            color: white;
+            font-size: 14px;
+            width: 280px;
+            outline: none;
+        }
+
+        nav input:focus {
+            border-color: var(--color-blue);
+        }
+
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 65px);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 340px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .typology-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .typology-item:hover {
+            background-color: #eff6ff;
+            color: var(--color-blue);
+        }
+
+        .typology-item.active {
+            background-color: var(--color-blue);
+            color: white;
+            border-left: 6px solid var(--color-black);
+        }
+
+        .content-panel {
+            flex: 1;
+            padding: 25px 30px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .detail-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--color-blue);
+            margin: 0 0 20px 0;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .message-section {
+            margin-bottom: 22px;
+        }
+
+        .message-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 6px;
+            display: block;
+            letter-spacing: 0.5px;
+        }
+
+        .message-box {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-line;
+            margin-bottom: 10px;
+            color: #111827;
+            line-height: 1.55;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .btn-copy {
+            background-color: var(--color-black);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin-right: 8px;
+        }
+
+        .btn-copy:hover {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action {
+            background-color: var(--color-blue);
+        }
+
+        .btn-action:hover {
+            background-color: var(--color-blue-hover);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: var(--color-black);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            border-left: 4px solid var(--color-blue);
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        .no-selection {
+            text-align: center;
+            color: #9ca3af;
+            margin-top: 120px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>Gestionnaire de Typologies — Accessoire Manquant</h1>
+    <input type="text" id="searchInput" placeholder="Rechercher une typologie...">
+</nav>
+
+<div class="main-layout">
+    <div class="sidebar" id="sidebarList"></div>
+    <div class="content-panel" id="contentPanel">
+        <div class="no-selection">Sélectionnez une typologie dans la liste de gauche pour afficher les messages complets.</div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Copié dans le presse-papiers !</div>
+
+<script>
+const data = [
+    {
+        typology: "Vendeur demande infos",
+        client: `Bonjour,
+Pour pouvoir traiter votre demande, le vendeur a besoin d’informations complémentaires :
+##[DETAIL DES INFORMATIONS MANQUANTES]##
+A réception des informations, le vendeur vous proposera une solution de prise en charge.
+De notre coté, nous veillerons à ce que cette solution soit mise en œuvre correctement et dans un délai raisonnable. Nous vous invitons à rester en contact avec votre vendeur directement depuis ce fil de discussion et vous remercions de votre bonne collaboration,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous accusons réception de votre réponse et vous en remercions ; Vous avez indiqué avoir besoin d'éléments complémentaires afin d'établir un diagnostic,
+Nous prenons contact avec le client afin d'appuyer votre demande et qu'il vous apporte les informations demandées dans les meilleurs délais,
+Nous vous remercions de votre réactivité et comptons sur vous pour une résolution dans les délais de ce problème.
+Bonne journée,`,
+        actions: `392 - Mise en attente 7 jours
+1924 - Demande de précisions client
+Commentaire : En attendant la réponse du client`
+    },
+    {
+        typology: "Vendeur propose geste co + déclenché",
+        client: `Bonjour,
+Nous constatons que le vendeur vous a remboursé l'accessoire qu'il manquait à votre produit. Nous espérons que cette solution vous satisfait. En cas de problème, n'hésitez pas à en parler avec votre vendeur directement depuis cette discussion. Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour le remboursement de l'accessoire que vous avez réalisé. Nous clôturons le dossier.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2517 - Modération discussion MP (discussion)
+386 - Information sur le remboursement effectué
+Commentaire : Remboursement de l'accessoire déjà effectué`
+    },
+    {
+        typology: "Accessoire fourni – Vendeur refuse prise en charge",
+        client: `Bonjour,
+Nous relançons le vendeur pour qu’il vous apporte une solution liée à l'accessoire qu'il manque à votre produit.
+Celui-ci a jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE PASSAGE EN RECLAMATION]## pour résoudre votre problème.
+Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Après vérification sur la fiche produit, l'accessoire qu'il manque est bien inclus avec le produit. Nous vous invitons à lui répondre dans les 48h en apportant une solution d'envoi de l'accessoire manquant / retour du produit / remboursement de l'accessoire. A défaut, nous rembourserons le produit. Merci pour votre compréhension.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2305 - MEA 2 jours - Attente solution conforme`
+    },
+    {
+        typology: "Enlèvement à domicile (produit volumineux)",
+        client: `Bonjour,
+Votre vendeur vous a fourni une procédure de retour. Votre produit étant volumineux, le vendeur doit organiser la reprise de votre produit à votre domicile. Nous lui demandons de vous proposer des créneaux pour réaliser la reprise. Nous vous invitons à rester en contact avec votre vendeur depuis ce fil de discussion. Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Vous avez l'obligation d'organiser la reprise à domicile du produit avec un transporteur professionnel ou de rembourser le client sans retour. En cas de contestation sur les frais de retour engendrés, vous avez la possibilité d’ouvrir un ticket auprès de votre support vendeur. Nous vous rappelons que vous avez jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE RECEPTION DU PRODUIT CHEZ LE VENDEUR]## pour traiter la demande du client. Au delà de ces 30 jours, nous nous réservons le droit de rembourser le client.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2305 – MEA 2 jours – Attente solution conforme`
+    },
+    {
+        typology: "Solution de retour conforme fournie",
+        client: `Bonjour,
+Le vendeur vous a fourni une solution conforme pour renvoyer votre produit.
+Nous vous invitons à suivre la procédure. ##[RAPPEL SOLUTION DE RETOUR]##
+Le produit doit être emballé proprement dans un emballage avec une protection équivalente à celle d'origine. Nous vous invitons à déposer une preuve du retour dans les 7 jours. A réception du colis dans ses entrepôts, le vendeur dispose d’un délai de 30 jours pour apporter une solution à votre demande. Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement dans cette discussion. Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour la solution conforme apportée au client. Celui-ci n'a pas encore retourné son produit, nous lui reprécisons tous les éléments et l'invitons à vous le retourner au plus vite. Celui-ci dispose de 7 jours pour réaliser le retour. N'hésitez pas à tenir le client informé dès la réception du produit dans vos entrepôts.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `392 - Mise en attente 7 jours
+1924 - Demande de précisions client
+Commentaire : En attendant la réponse du client`
+    },
+    {
+        typology: "Geste co proposé non effectué → on le fait",
+        client: `Bonjour,
+Le vendeur vous a proposé de rembourser votre accessoire manquant. En accord avec sa proposition, nous réalisons le remboursement de votre accessoire.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour la solution proposée au client. Pour ne pas faire patienter le client plus longtemps, nous réalisons le remboursement de l'accessoire manquant à votre charge.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `Modération de la réclamation : si la réponse a été fournie avant le passage en réclamation
+2517 - Modération discussion MP (discussion)
+549 - Rembourser des frais / Faire un geste commercial
+Motif : 129 - MP- Impact vendeur - Remboursement quantité
+Montant : De l'accessoire manquant
+Commentaire : Remboursement de l'accessoire manquant`
+    },
+    {
+        typology: "Accessoire non inclus → Refus demande",
+        client: `Bonjour,
+Après vérification, nous constatons que l'accessoire demandé n'est pas inclus avec le produit commandé. Nous sommes donc dans l'obligation de refuser votre demande.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Après vérification, l'accessoire n'est effectivement pas inclus. Nous refusons donc la demande du client et clôturons le dossier.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2517 - Modération discussion MP (discussion)
+490 - Refus demande client
+Commentaire : Accessoire non inclus dans la fiche produit`
+    },
+    {
+        typology: "Relance vendeur – Pas de réponse (48h)",
+        client: `Bonjour,
+Nous relançons le vendeur pour qu’il vous apporte une solution liée à l'accessoire qu'il manque à votre produit.
+Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion. Nous reviendrons vers vous dans 48 h ouvres afin de valider la bonne prise en charge de votre réclamation.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Après analyse, nous constatons que vous n'avez répondu à la demande du client. Nous vous invitons à lui répondre dans les 48h en apportant une solution d'envoi de l'accessoire manquant / retour du produit / remboursement de l'accessoire.
+A défaut, nous rembourserons le produit.
+Merci pour votre compréhension.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2305 - MEA 2 jours - Attente solution conforme`
+    },
+    {
+        typology: "Lien de suivi accessoire envoyé",
+        client: `Bonjour,
+Le vendeur a expédié votre accessoire manquant, voici le lien de suivi pour pouvoir suivre son acheminement jusqu'à chez vous : ##lien de suivi##
+Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour l'envoi de l'accessoire manquant. En cas de problème, nous vous rappelons que vous avez 30 jours pour traiter la demande du client.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2517 - Modération discussion MP (discussion)
+386 - Information sans traitement
+Commentaire : Lien de suivi de l'accessoire manquant présent`
+    },
+    {
+        typology: "Lien de suivi nouveau produit envoyé",
+        client: `Bonjour,
+Le vendeur a expédié votre nouveau produit, voici le lien de suivi pour pouvoir suivre son acheminement jusqu'à chez vous : ##lien de suivi##
+Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit.
+Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour l'envoi d'un nouveau produit au client. En cas de problème, nous vous rappelons que vous avez 30 jours pour traiter la demande du client.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `386 - Information sans traitement
+Commentaire : Lien de suivi du nouveau produit présent`
+    },
+    {
+        typology: "Vendeur propose envoi accessoire → Demande lien suivi",
+        client: `Bonjour,
+Le vendeur vous a proposé de vous envoyer l'accessoire qu'il manque à votre produit. Nous lui demandons de vous fournir le lien de suivi lié à l'envoi pour que vous puissiez suivre son acheminement jusqu'à chez vous. Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions d’avoir proposé au client d’envoyer l’accessoire manquant. Afin de pouvoir suivre l’envoi de l'accessoire manquant, pouvez-vous transmettre le lien de suivi en lien avec l’envoi ? Nous vous invitons à nous le fournir dans les 48h.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2305 - MEA 2 jours - Attente solution conforme`
+    },
+    {
+        typology: "Vendeur propose envoi nouveau produit → Demande lien suivi",
+        client: `Bonjour,
+Le vendeur vous a proposé de vous envoyer un nouveau produit. Nous lui demandons de vous fournir le lien de suivi lié à l'envoi pour que vous puissiez suivre son acheminement jusqu'à chez vous. Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit.
+Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions proposée au client. Afin de pouvoir suivre l’envoi du produit, pouvez-vous transmettre le lien de suivi en lien avec l’envoi ? Nous vous invitons à nous le fournir dans les 48h.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2305 - MEA 2 jours - Attente solution conforme`
+    },
+    {
+        typology: "Première demande solution (48h)",
+        client: ``,
+        vendeur: `Bonjour,
+Le client nous signale qu’un accessoire manque dans sa commande. La responsabilité de cette pièce incombe à votre charge.
+Nous vous remercions de bien vouloir proposer au client une solution dans les 48 heures :
+- soit le retour du produit,
+- soit l’envoi de l’accessoire manquant.
+Sans retour ni action de votre part dans ce délai, un remboursement total sera déclenché à votre charge.
+Merci de votre réactivité.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `Demande initiale de solution au vendeur (48h)`
+    },
+    {
+        typology: "Après 2305 – Réponse non conforme",
+        client: `Bonjour,
+Le vendeur a jusqu’au ##[DATE]## pour apporter une solution à votre demande. Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Le client signale avoir reçu le produit avec des accessoires manquants.
+Nous vous invitons à mettre en œuvre dans les meilleurs délais une solution de prise en charge pour le client. Cependant, la solution proposée n’est pas conforme.
+Vous pouvez lui proposer :
+- L’envoi de pièces de rechange (si le type de produit le permet)
+- Le renvoi vers la marque
+- Le remboursement
+- Le retour du produit.
+Nous vous rappelons que vous avez jusqu'au ##[DATE]## pour traiter la demande du client.
+Au delà de ces 30 jours, nous nous réservons le droit de rembourser le client.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2317 - MEA 4 jours - Relance vendeur réponse non conforme
+Commentaire : Le vendeur doit proposer une solution au client`
+    },
+    {
+        typology: "Client a répondu après 1924",
+        client: `Bonjour,
+Nous vous remercions pour les précisions apportées au vendeur.
+Le vendeur a jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE PASSAGE EN RECLAMATION]## pour résoudre votre demande.
+Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande.
+Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit.
+Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous constatons que le client a donné les précisions dont vous avez besoin.
+Nous vous invitons à consulter sa réponse et à traiter sa demande dès que possible.
+Nous vous indiquons que vous avez jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE PASSAGE EN RECLAMATION]## pour traiter la demande du client.
+Au delà de ces 30 jours, nous nous réservons le droit de rembourser le client.
+Nous vous remercions par avance de votre prise en charge.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2324 - MEA 5 jours - Attente d'informations de la part du vendeur
+En attente de la prise en charge par le vendeur.`
+    },
+    {
+        typology: "Après 4× 2317 → Demande procédure de retour",
+        client: `Bonjour,
+Le vendeur n’a pas pu prendre en charge convenablement la gestion de votre demande. Avant de pouvoir être remboursé, nous lui demandons de vous fournir une procédure pour que vous puissiez retourner votre produit. Ce n’est qu’au moment du retour que votre remboursement sera déclenché.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Vous n’avez pas répondu à la demande de prise en charge SAV faite par le client. Le client étant toujours en possession du produit, nous vous invitons à lui fournir une procédure de retour pour que celui-ci retourne son produit avant d’être remboursé. Nous vous laissons 48h pour lui fournir la procédure de retour adaptée au gabarit du produit. Pour rappel, voici les différentes solutions de retour possible :
+
+Pour un produit non volumineux :
+- Une étiquette prépayée OU
+- Une adresse de retour en France
+
+Pour un produit volumineux :
+- Les coordonnées du transporteur et les instructions de retour (n° de bon de retour…) avec ou sans rendez-vous proposé.
+
+Si aucune solution de retour conforme n'est proposée, nous rembourserons le client.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2318 - MEA 2 jours - Attente procédure de retour`
+    },
+    {
+        typology: "Geste co effectué par le vendeur",
+        client: `Bonjour,
+Nous constatons que le vendeur vous a remboursé l'accessoire qu'il manquait à votre produit. Nous espérons que cette solution vous satisfait. En cas de problème, n'hésitez pas à en parler avec votre vendeur directement depuis cette discussion. Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous remercions pour le remboursement de l'accessoire que vous avez réalisé. Nous clôturons le dossier.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `2517 - Modération discussion MP (discussion)
+386 - Information sur le remboursement effectué
+Commentaire : Remboursement de l'accessoire déjà effectué`
+    },
+    {
+        typology: "Client n'a pas répondu après 1924",
+        client: `Bonjour,
+Il semble que votre réponse ne permette toujours pas au vendeur de traiter votre demande. Nous vous invitons à les communiquer dès que vous en avez la possibilité. Le vendeur prendra en charge votre demande à ce moment là.
+Merci pour votre compréhension,
+L'équipe Cdiscount`,
+        vendeur: `Bonjour,
+Nous vous informons que le client n'a pas donné les informations dont vous avez besoin. Nous clôturons le dossier faute d’informations suffisantes. Néanmoins, une fois les informations données par le client, nous vous invitons à prendre en charge sa demande.
+Cordialement,
+Abdelkrim
+L'équipe Cdiscount`,
+        actions: `386 - Information sans traitement
+Commentaire : Clôture du dossier faute d'infos client`
+    }
+];
+
+function renderSidebar(filter = "") {
+    const sidebar = document.getElementById("sidebarList");
+    const filtered = data.filter(item =>
+        item.typology.toLowerCase().includes(filter)
+    );
+
+    sidebar.innerHTML = filtered.map((item) => {
+        const realIndex = data.indexOf(item);
+        return `<div class="typology-item" data-index="${realIndex}" onclick="selectTypology(${realIndex})">
+            ${item.typology}
+        </div>`;
+    }).join("");
+}
+
+function selectTypology(index) {
+    document.querySelectorAll(".typology-item").forEach(el => el.classList.remove("active"));
+    const activeEl = document.querySelector(`.typology-item[data-index="${index}"]`);
+    if (activeEl) activeEl.classList.add("active");
+
+    const item = data[index];
+    const panel = document.getElementById("contentPanel");
+
+    const clientSection = item.client
+        ? `<div class="message-section">
+            <span class="message-label">Message Client</span>
+            <div class="message-box">${escapeHtml(item.client)}</div>
+            <button class="btn-copy" onclick="copyText(\`${escapeForTemplate(item.client)}\`)">Copier Message Client</button>
+           </div>`
+        : `<div class="message-section">
+            <span class="message-label">Message Client</span>
+            <div class="message-box" style="color:#9ca3af;font-style:italic;">Aucun message client pour cette typologie</div>
+           </div>`;
+
+    const vendeurSection = item.vendeur
+        ? `<div class="message-section">
+            <span class="message-label">Message Vendeur</span>
+            <div class="message-box">${escapeHtml(item.vendeur)}</div>
+            <button class="btn-copy" onclick="copyText(\`${escapeForTemplate(item.vendeur)}\`)">Copier Message Vendeur</button>
+           </div>`
+        : `<div class="message-section">
+            <span class="message-label">Message Vendeur</span>
+            <div class="message-box" style="color:#9ca3af;font-style:italic;">Aucun message vendeur pour cette typologie</div>
+           </div>`;
+
+    panel.innerHTML = `
+        <div class="detail-card">
+            <h2 class="detail-title">${escapeHtml(item.typology)}</h2>
+            ${clientSection}
+            ${vendeurSection}
+            <div class="message-section">
+                <span class="message-label">Actions & Codes</span>
+                <div class="message-box">${escapeHtml(item.actions)}</div>
+                <button class="btn-copy btn-action" onclick="copyText(\`${escapeForTemplate(item.actions)}\`)">Copier Actions</button>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    if (!text) return "";
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function escapeForTemplate(text) {
+    if (!text) return "";
+    return text
+        .replace(/\\/g, "\\\\")
+        .replace(/`/g, "\\`")
+        .replace(/\$/g, "\\$");
+}
+
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast();
+    }).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast();
+    });
+}
+
+function showToast() {
+    const toast = document.getElementById("toast");
+    toast.style.display = "block";
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 1600);
+}
+
+document.getElementById("searchInput").addEventListener("input", function (e) {
+    renderSidebar(e.target.value.toLowerCase().trim());
+});
+
+renderSidebar();
+</script>
+</body>
+</html>
