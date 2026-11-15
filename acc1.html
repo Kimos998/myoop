@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Typologies — SAV & Retours</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        nav {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        nav h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 310px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-box {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .typo-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .typo-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .typo-item:hover {
+            background-color: #f0f9ff;
+        }
+
+        .typo-item.active {
+            background-color: #e0f2fe;
+            border-left: 3px solid var(--primary);
+        }
+
+        .typo-item.special-rubrique {
+            border-top: 2px solid var(--border-color);
+            background-color: #f8fafc;
+        }
+
+        .typo-item.special-rubrique .typo-title {
+            color: var(--primary);
+        }
+
+        .typo-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+            margin-bottom: 2px;
+            color: var(--text-main);
+        }
+
+        .typo-code {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: inline-block;
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 15px 20px;
+            overflow-y: auto;
+        }
+
+        .placeholder {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .header-info {
+            background: var(--bg-card);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .header-info h2 {
+            font-size: 1.05rem;
+            color: var(--text-main);
+        }
+
+        .status-badge {
+            background-color: #e0f2fe;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+
+        .msg-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .msg-header {
+            padding: 6px 12px;
+            background-color: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background-color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-copy, .btn-action {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-copy:hover, .btn-action:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-dark {
+            background-color: var(--text-main);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-dark:hover {
+            opacity: 0.9;
+        }
+
+        .msg-body {
+            padding: 8px 12px;
+        }
+
+        textarea, input[type="text"].form-input {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-main);
+            resize: vertical;
+            background-color: #ffffff;
+            outline: none;
+        }
+
+        textarea:focus, input[type="text"].form-input:focus {
+            border-color: var(--primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: var(--text-main);
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 8px 15px;
+            position: fixed;
+            z-index: 100;
+            right: 20px;
+            bottom: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>Gestionnaire de Typologies — SAV & Retours</h1>
+</nav>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Rechercher...">
+        </div>
+        <ul class="typo-list" id="typoList"></ul>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="placeholder">
+            Sélectionnez une typologie dans la liste de gauche.
+        </div>
+    </div>
+</div>
+
+<div id="toast">Copié dans le presse-papiers !</div>
+<input type="file" id="importFileInput" accept=".txt,.json" style="display: none;">
+
+<script>
+const defaultTypologies = [
+    {
+        id: 1,
+        title: "Diagnostic & Demande d'informations complémentaires",
+        code: "392 - Mise en attente 7 jours",
+        note: "DONNER L'INFO MANQUANTE",
+        callNote: "J'ai informé le client des informations complémentaires demandées par le vendeur afin d'établir un diagnostic.",
+        clt: `Bonjour,\n\nPour pouvoir traiter votre demande, le vendeur a besoin d’informations complémentaires : ##[DETAIL DES INFORMATIONS MANQUANTES]## A réception des informations, le vendeur vous proposera une solution de prise en charge.\n\nDe notre coté, nous veillerons à ce que cette solution soit mise en œuvre correctement et dans un délai raisonnable. Nous vous invitons à rester en contact avec votre vendeur directement depuis ce fil de discussion et vous remercions de votre bonne collaboration,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous accusons réception de votre réponse et vous en remercions ; Vous avez indiqué avoir besoin d'éléments complémentaires afin d'établir un diagnostic,\n\nNous prenons contact avec le client afin d'appuyer votre demande et qu'il vous apporte les informations demandées dans les meilleurs délais,\n\nNous vous remercions de votre réactivité et comptons sur vous pour une résolution dans les délais de cette panne.\n\nBonne journée,`
+    },
+    {
+        id: 2,
+        title: "Réponse client aux précisions (Transmission vendeur)",
+        code: "2324 - MEA 5 jours",
+        note: "En attente de la prise en charge par le vendeur.",
+        callNote: "J'ai informé le client que ses précisions ont été transmises au vendeur et qu'un délai de 30 jours est accordé pour résoudre la demande.",
+        clt: `Bonjour,\n\nNous vous remercions pour les précisions apportées au vendeur.\n\nLe vendeur a jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE PASSAGE EN RECLAMATION]## pour résoudre votre demande.\n\nDurant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande.\n\nSi celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit.\n\nNous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous constatons que le client a donné les précisions dont vous avez besoin.\n\nNous vous invitons à consulter sa réponse et à traiter sa demande dès que possible.\n\nNous vous indiquons que vous avez jusqu'au ##[COMPTER + 30 JOURS A PARTIR DE LA DATE DE PASSAGE EN RECLAMATION]## pour traiter la demande du client.\n\nAu delà de ces 30 jours, nous nous réservons le droit de rembourser le client.\n\nNous vous remercions par avance de votre prise en charge.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 3,
+        title: "Première relance accessoire manquant / Absence réponse (48h)",
+        code: "2305 - MEA 2 jours",
+        note: "Attente solution conforme",
+        callNote: "J'ai informé le client que nous relançons le vendeur concernant l'accessoire manquant et que nous reviendrons vers lui sous 48h ouvrées.",
+        clt: `Bonjour,\n\nNous relançons le vendeur pour qu’il vous apporte une solution liée à l'accessoire qu'il manque à votre produit.\n\nNous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion. Nous reviendrons vers vous dans 48 h ouvres afin de valider la bonne prise en charge de votre réclamation.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nAprès analyse, nous constatons que vous n'avez répondu à la demande du client. Nous vous invitons à lui répondre dans les 48h en apportant une solution d'envoi de l'accessoire manquant / retour du produit / remboursement de l'accessoire.\n\nA défaut, nous rembourserons le produit.\n\nMerci pour votre compréhension.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 4,
+        title: "Vendeur propose l'envoi de l'accessoire (Lien de suivi)",
+        code: "2305 - MEA 2 jours",
+        note: "Attente lien de suivi accessoire",
+        callNote: "J'ai informé le client que le vendeur propose d'envoyer l'accessoire manquant et que nous demandons le lien de suivi.",
+        clt: `Bonjour,\n\nLe vendeur vous a proposé de vous envoyer l'accessoire qu'il manque à votre produit. Nous lui demandons de vous fournir le lien de suivi lié à l'envoi pour que vous puissiez suivre son acheminement jusqu'à chez vous. Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous vous remercions d’avoir proposé au client d’envoyer l’accessoire manquant. Afin de pouvoir suivre l’envoi de l'accessoire manquant, pouvez-vous transmettre le lien de suivi en lien avec l’envoi ? Nous vous invitons à nous le fournir dans les 48h.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 5,
+        title: "Vendeur propose un nouveau produit (Lien de suivi)",
+        code: "2305 - MEA 2 jours",
+        note: "Attente lien de suivi nouveau produit",
+        callNote: "J'ai informé le client que le vendeur propose un nouveau produit et que nous demandons le lien de suivi.",
+        clt: `Bonjour,\n\nLe vendeur vous a proposé de vous envoyer un nouveau produit. Nous lui demandons de vous fournir le lien de suivi lié à l'envoi pour que vous puissiez suivre son acheminement jusqu'à chez vous. Nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit.\n\nNous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous vous remercions de la proposition faite au client. Afin de pouvoir suivre l’envoi du produit, pouvez-vous transmettre le lien de suivi en lien avec l’envoi ? Nous vous invitons à nous le fournir dans les 48h.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 6,
+        title: "Expédition confirmée / Lien de suivi fourni",
+        code: "386 - Information sans traitement",
+        note: "Lien de suivi présent",
+        callNote: "J'ai transmis au client le lien de suivi de son colis expédié par le vendeur.",
+        clt: `Bonjour,\n\nLe vendeur a expédié votre accessoire manquant (ou nouveau produit), voici le lien de suivi pour pouvoir suivre son acheminement jusqu'à chez vous : ##[Lien de suivi]##\n\nNous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous vous remercions pour l'envoi. En cas de problème, nous vous rappelons que vous avez 30 jours pour traiter la demande du client.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 7,
+        title: "Procédure de retour standard fournie",
+        code: "392 - Mise en attente 7 jours",
+        note: "En attente du retour client (7 jours)",
+        callNote: "J'ai informé le client de la procédure de retour fournie par le vendeur et l'ai invité à retourner le produit.",
+        clt: `Bonjour,\n\nLe vendeur vous a fourni une solution conforme pour renvoyer votre produit.\n\nNous vous invitons à suivre la procédure. ##[RAPPEL SOLUTION DE RETOUR]## Le produit doit être emballé proprement dans un emballage avec une protection équivalente à celle d'origine. Nous vous invitons à déposer une preuve du retour dans les 7 jours. A réception du colis dans ses entrepôts, le vendeur dispose d’un délai de 30 jours pour solutionner votre panne. Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion. Merci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous vous remercions pour la solution conforme apportée au client. Celui-ci n'a pas encore retourné son produit, nous lui reprécisons tous les éléments et l'invitons à vous le retourner au plus vite. Celui-ci dispose de 7 jours pour réaliser le retour. N'hésitez pas à tenir le client informé dès la réception du produit dans vos entrepôts.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 8,
+        title: "Procédure de retour pour produit volumineux (Reprise domicile)",
+        code: "2305 - MEA 2 jours",
+        note: "Reprise à domicile",
+        callNote: "J'ai informé le client que le vendeur doit organiser la reprise à domicile de son produit volumineux.",
+        clt: `Bonjour,\n\nVotre vendeur vous a fourni une procédure de retour. Votre produit étant volumineux, le vendeur doit organiser la reprise de votre produit à votre domicile. Nous lui demandons de vous proposer des créneaux pour réaliser la reprise. Nous vous invitons à rester en contact avec votre vendeur depuis ce fil de discussion. Merci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nVous avez l'obligation d'organiser la reprise à domicile du produit avec un transporteur professionnel ou de rembourser le client sans retour. En cas de contestation sur les frais de retour engendrés, vous avez la possibilité d’ouvrir un ticket auprès de votre support vendeur. Nous vous rappelons que vous avez jusqu'au ##[COMPTER + 30 JOURS]## pour traiter la demande. Au delà de ces 30 jours, nous nous réservons le droit de rembourser le client.\n\nCordialement,\n\n##Votre prénom##`
+    },
+    {
+        id: 9,
+        title: "Réponse non conforme du vendeur après relance",
+        code: "2317 - MEA 4 jours",
+        note: "Le vendeur doit proposer une solution conforme",
+        callNote: "J'ai informé le client du nouveau délai accordé au vendeur suite à une proposition non conforme.",
+        clt: `Bonjour,\n\nLe vendeur a jusqu’au ##[Date limite]## pour apporter une solution à votre demande. Durant ce délai, nous surveillons votre dossier de façon à ce que le vendeur prenne en charge correctement votre demande. Si celui-ci ne parvient pas à mettre en œuvre la solution à temps, ce malgré votre bonne collaboration, nous rembourserons le produit. Nous vous invitons à rester en contact avec votre vendeur directement depuis cette discussion.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nLe client signale un problème non résolu. La solution proposée n’est pas conforme. Vous pouvez lui proposer l'envoi de pièces de rechange, le renvoi vers la marque, le remboursement ou le retour du produit. Nous vous rappelons que vous avez jusqu'au ##[Date]## pour traiter la demande.\n\nCordialement,\n\nAbdelkrim\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 10,
+        title: "Absence de réponse persistante vendeur (Procédure retour exigée)",
+        code: "2318 - MEA 2 jours",
+        note: "Attente procédure de retour avant remboursement",
+        callNote: "J'ai informé le client qu'une procédure de retour lui sera demandée avant tout remboursement suite au silence du vendeur.",
+        clt: `Bonjour,\n\nLe vendeur n’a pas pu prendre en charge convenablement la gestion de votre panne. Avant de pouvoir être remboursé, nous lui demandons de vous fournir une procédure pour que vous puissiez retourner votre produit. Ce n’est qu’au moment du retour que votre remboursement sera déclenché.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nVous n’avez pas répondu à la demande de prise en charge SAV. Le client étant toujours en possession du produit, nous vous invitons à lui fournir une procédure de retour adaptée au gabarit sous 48h avant d’être remboursé.\n\nCordialement,\n\n##Votre prénom##`
+    },
+    {
+        id: 11,
+        title: "Geste commercial / Remboursement d'accessoire effectué",
+        code: "2517 - Modération / 386",
+        note: "Remboursement de l'accessoire déjà effectué",
+        callNote: "J'ai informé le client que son accessoire manquant lui a bien été remboursé par le vendeur.",
+        clt: `Bonjour,\n\nNous constatons que le vendeur vous a remboursé l'accessoire qu'il manquait à votre produit. Nous espérons que cette solution vous satisfait. En cas de problème, n'hésitez pas à en parler avec votre vendeur directement depuis cette discussion. Merci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nNous vous remercions pour le remboursement de l'accessoire que vous avez réalisé. Nous clôturons le dossier.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    },
+    {
+        id: 12,
+        title: "Refus prise en charge (Accessoire non inclus sur fiche produit)",
+        code: "2517 - Modération / 490",
+        note: "Accessoire non inclus dans la fiche produit",
+        callNote: "J'ai informé le client que l'accessoire demandé n'est pas inclus dans la fiche produit.",
+        clt: `Bonjour,\n\nAprès vérification, nous constatons que l'accessoire demandé n'est pas inclus avec le produit commandé. Nous sommes donc dans l'obligation de refuser votre demande.\n\nMerci pour votre compréhension,\n\nL'équipe Cdiscount`,
+        vdr: `Bonjour,\n\nAprès vérification, l'accessoire n'est effectivement pas inclus. Nous refusons donc la demande du client et clôturons le dossier.\n\nCordialement,\n\n##Votre prénom##\n\nL'équipe Cdiscount`
+    }
+];
+
+let typologies = JSON.parse(localStorage.getItem('sav_typologies')) || [...defaultTypologies];
+
+const typoListEl = document.getElementById('typoList');
+const mainContentEl = document.getElementById('mainContent');
+const searchInputEl = document.getElementById('searchInput');
+const toastEl = document.getElementById('toast');
+const importFileInput = document.getElementById('importFileInput');
+
+function saveToLocalStorage() {
+    localStorage.setItem('sav_typologies', JSON.stringify(typologies));
+}
+
+function renderList(filter = '') {
+    typoListEl.innerHTML = '';
+    const filtered = typologies.filter(t => 
+        t.title.toLowerCase().includes(filter.toLowerCase()) || 
+        (t.code && t.code.toLowerCase().includes(filter.toLowerCase()))
+    );
+
+    filtered.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'typo-item';
+        li.dataset.id = item.id;
+        li.innerHTML = `
+            <div class="typo-title">${item.title}</div>
+            ${item.code ? `<span class="typo-code">${item.code}</span>` : ''}
+        `;
+        li.addEventListener('click', () => {
+            document.querySelectorAll('.typo-item').forEach(el => el.classList.remove('active'));
+            li.classList.add('active');
+            renderDetails(item);
+        });
+        typoListEl.appendChild(li);
+    });
+
+    // Rubrique finale : Ajouter / Sauvegarder / Importer
+    const addLi = document.createElement('li');
+    addLi.className = 'typo-item special-rubrique';
+    addLi.id = 'rubriqueAdd';
+    addLi.innerHTML = `
+        <div class="typo-title">+ Ajouter / Sauvegarder (.txt)</div>
+        <span class="typo-code">Gestion des modèles</span>
+    `;
+    addLi.addEventListener('click', () => {
+        document.querySelectorAll('.typo-item').forEach(el => el.classList.remove('active'));
+        addLi.classList.add('active');
+        renderAddRubrique();
+    });
+    typoListEl.appendChild(addLi);
+}
+
+function createCard(badgeText, content, rows = 3) {
+    if (!content || !content.trim()) return '';
+    const uniqueId = 'txt_' + Math.random().toString(36).substr(2, 9);
+    return `
+        <div class="msg-card">
+            <div class="msg-header">
+                <span class="badge">${badgeText}</span>
+                <button class="btn-copy" onclick="copyText('${uniqueId}')">Copier</button>
+            </div>
+            <div class="msg-body">
+                <textarea id="${uniqueId}" rows="${rows}">${content}</textarea>
+            </div>
+        </div>
+    `;
+}
+
+function renderDetails(item) {
+    const deleteBtn = item.isCustom ? `<button class="btn-dark" onclick="deleteTypology(${item.id})">Supprimer</button>` : '';
+    mainContentEl.innerHTML = `
+        <div class="header-info">
+            <h2>${item.title}</h2>
+            <div style="display:flex; gap:8px; align-items:center;">
+                ${item.code ? `<span class="status-badge">${item.code}</span>` : ''}
+                ${deleteBtn}
+            </div>
+        </div>
+        ${createCard('Message Client (CLT)', item.clt, 6)}
+        ${createCard('Message Vendeur (VDR)', item.vdr, 6)}
+        ${createCard('Commentaire / Note Interne', item.note, 2)}
+        ${createCard('Commentaire Appel Client', item.callNote, 2)}
+    `;
+}
+
+function renderAddRubrique() {
+    mainContentEl.innerHTML = `
+        <div class="header-info">
+            <h2>Ajouter une nouvelle entrée & Sauvegarde (.txt)</h2>
+            <span class="status-badge">Champs facultatifs (sauf titre)</span>
+        </div>
+
+        <div class="msg-card">
+            <div class="msg-header">
+                <span class="badge">Nouvelle Typologie</span>
+            </div>
+            <div class="msg-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Titre de la typologie *</label>
+                        <input type="text" id="newTitle" class="form-input" placeholder="Ex: Remboursement partiel...">
+                    </div>
+                    <div class="form-group">
+                        <label>Code / Mise en attente (Optionnel)</label>
+                        <input type="text" id="newCode" class="form-input" placeholder="Ex: 2249 - Mise en attente 6 jours">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Message Client (CLT) — Optionnel</label>
+                    <textarea id="newClt" rows="4" placeholder="Laisser vide si non nécessaire..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Message Vendeur (VDR) — Optionnel</label>
+                    <textarea id="newVdr" rows="4" placeholder="Laisser vide si non nécessaire..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Commentaire / Note Interne — Optionnel</label>
+                    <textarea id="newNote" rows="2" placeholder="Laisser vide si non nécessaire..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Commentaire Appel Client — Optionnel</label>
+                    <textarea id="newCallNote" rows="2" placeholder="J'ai informé le client..."></textarea>
+                </div>
+
+                <div class="toolbar-actions">
+                    <button class="btn-action" onclick="addNewTypology()">Enregistrer dans la liste</button>
+                    <button class="btn-dark" onclick="exportToTxt()">Exporter tout en fichier (.txt)</button>
+                    <button class="btn-dark" onclick="triggerImport()">Charger un fichier (.txt)</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function addNewTypology() {
+    const title = document.getElementById('newTitle').value.trim();
+    const code = document.getElementById('newCode').value.trim();
+    const clt = document.getElementById('newClt').value.trim();
+    const vdr = document.getElementById('newVdr').value.trim();
+    const note = document.getElementById('newNote').value.trim();
+    const callNote = document.getElementById('newCallNote').value.trim();
+
+    if (!title) {
+        showToast("Veuillez saisir au moins un titre !");
+        return;
+    }
+
+    if (!clt && !vdr && !note && !callNote) {
+        showToast("Remplissez au moins un champ de message ou commentaire !");
+        return;
+    }
+
+    const newEntry = {
+        id: Date.now(),
+        title,
+        code,
+        clt,
+        vdr,
+        note,
+        callNote,
+        isCustom: true
+    };
+
+    typologies.push(newEntry);
+    saveToLocalStorage();
+    renderList(searchInputEl.value);
+    
+    // Sélectionner automatiquement la nouvelle entrée
+    const items = document.querySelectorAll('.typo-item');
+    items.forEach(el => {
+        if (el.dataset.id == newEntry.id) el.classList.add('active');
+    });
+    renderDetails(newEntry);
+    showToast("Entrée ajoutée avec succès !");
+}
+
+function deleteTypology(id) {
+    typologies = typologies.filter(t => t.id !== id);
+    saveToLocalStorage();
+    renderList(searchInputEl.value);
+    mainContentEl.innerHTML = `<div class="placeholder">Entrée supprimée. Sélectionnez une typologie à gauche.</div>`;
+    showToast("Entrée supprimée !");
+}
+
+function exportToTxt() {
+    const dataStr = JSON.stringify(typologies, null, 2);
+    const blob = new Blob([dataStr], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "sauvegarde_typologies_sav.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Fichier sauvegarde_typologies_sav.txt téléchargé !");
+}
+
+function triggerImport() {
+    importFileInput.click();
+}
+
+importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const importedData = JSON.parse(event.target.result);
+            if (Array.isArray(importedData)) {
+                typologies = importedData;
+                saveToLocalStorage();
+                renderList(searchInputEl.value);
+                showToast("Données importées avec succès !");
+            } else {
+                showToast("Format de fichier invalide !");
+            }
+        } catch (err) {
+            showToast("Erreur lors de la lecture du fichier !");
+        }
+    };
+    reader.readAsText(file);
+    importFileInput.value = '';
+});
+
+function copyText(elementId) {
+    const textarea = document.getElementById(elementId);
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast("Copié dans le presse-papiers !");
+    });
+}
+
+function showToast(msg = "Copié dans le presse-papiers !") {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => {
+        toastEl.classList.remove('show');
+    }, 2200);
+}
+
+searchInputEl.addEventListener('input', (e) => {
+    renderList(e.target.value);
+});
+
+// Initialisation
+renderList();
+</script>
+
+</body>
+</html>
